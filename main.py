@@ -1,8 +1,8 @@
-def computeFirstSets (G):
+def computeFirstSets(G):
     first_sets = {}
     calculated = []
 
-    def computeFirst (symbol):
+    def computeFirst(symbol):
         if symbol in calculated:
             return
         calculated.append(symbol)
@@ -39,9 +39,43 @@ def unionExcludingEpsilon(set1, set2):
         return set1
     return set1
 
-def printFirstSets (sets):
+def printFirstSets(sets):
     for non_terminal in sets:
         print(f"First({non_terminal}) = {sets[non_terminal]}")
+
+def computeFollowSets(G,first_sets):
+    follow_sets = {symbol: set() for symbol in G}
+
+    #Rule 1:
+    follow_sets["S"].add("$")
+
+    #Rule 2:
+    for non_terminal in G:
+        for production in G[non_terminal]:
+            for i in range(len(production)):
+                if len(production) >= 2 and production[i].isupper() and production[i].isalpha() and i != len(production)-1:
+                    if production[i+1].isupper() and production[i+1].isalpha():
+                        follow_sets[production[i]] = unionExcludingEpsilon(follow_sets[production[i]], first_sets[production[i+1]])
+                    else:
+                        follow_sets[production[i]].add(production[i+1])
+
+    #Rule 3:
+    for non_terminal in G:
+        for production in G[non_terminal]:
+            for i in range(len(production)):
+                if production[i].isupper() and production[i].isalpha() and i == len(production)-1:
+                    follow_sets[production[i]] = follow_sets[production[i]].union(follow_sets[non_terminal])
+                elif len(production) >= 2 and production[i].isupper() and production[i].isalpha() and i != len(production)-1:
+                    if production[i + 1].isupper() and production[i+1].isalpha() and "e" in first_sets[production[i+1]]:
+                        follow_sets[production[i]] = follow_sets[production[i]].union(follow_sets[non_terminal])
+
+    return follow_sets
+
+def printFollowSets(sets):
+    for non_terminal in sets:
+        print(f"Follow({non_terminal}) = {sets[non_terminal]}")
+
+
 
 def main():
     cases = int(input())
@@ -57,8 +91,11 @@ def main():
                 G[l[0]].append(l[i])
             j += 1
 
-    first_sets = computeFirstSets(G)
-    printFirstSets(first_sets)
+        first_sets = computeFirstSets(G)
+        printFirstSets(first_sets)
+        follow_sets = computeFollowSets(G,first_sets)
+        printFollowSets(follow_sets)
+
 
 if __name__ == "__main__":
     main()
