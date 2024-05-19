@@ -11,9 +11,15 @@ def computeFirstSets (G):
             for i in range(len(production)):
                 if production[i] in G:
                     computeFirst(production[i])
-                    #BUG: It adds epsilon after finding the first set of the first symbol. It can only add epsilon
-                    #     when all the symbols in the current production produce epsilon.
-                    first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
+                    if i == len(production) - 1:
+                        first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
+                    else:
+                        #epsilon rule: if all the first of the non-terminals in the production have e,
+                        #then First(current symbol) also does
+                        if "e" in first_sets[production[i]]:
+                            first_sets[symbol] = unionExcludingEpsilon(first_sets[symbol], first_sets[production[i]])
+                        else:
+                            first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
                     if "e" not in first_sets[production[i]]:
                         break
                 else:
@@ -24,6 +30,14 @@ def computeFirstSets (G):
         computeFirst(non_terminal)
 
     return first_sets
+
+def unionExcludingEpsilon(set1, set2):
+    set1 = set1.union(set2)
+    try:
+        set1.discard("e")
+    except:
+        return set1
+    return set1
 
 def printFirstSets (sets):
     for non_terminal in sets:
