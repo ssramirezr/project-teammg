@@ -11,17 +11,16 @@ def computeFirstSets(G):
             for i in range(len(production)):
                 if production[i] in G:
                     computeFirst(production[i])
-                    if i == len(production) - 1:
+                    if i == len(production) - 1 or isLastNonTerminal(production, production[i]):
                         first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
                     else:
-                        #epsilon rule: if all the first of the non-terminals in the production have e,
+                        #epsilon rule: if all the first sets of the non-terminals in the production have e,
                         #then First(current symbol) also does
                         if "e" in first_sets[production[i]]:
                             first_sets[symbol] = unionExcludingEpsilon(first_sets[symbol], first_sets[production[i]])
                         else:
                             first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
-                    if "e" not in first_sets[production[i]]:
-                        break
+                            break
                 else:
                     first_sets[symbol].add(production[i])
                     break
@@ -38,6 +37,12 @@ def unionExcludingEpsilon(set1, set2):
     except:
         return set1
     return set1
+
+def isLastNonTerminal(production, non_terminal):
+    for symbol in reversed(production):
+        if symbol.isalpha() and symbol.isupper():
+            return symbol == non_terminal
+    return False
 
 def printFirstSets(sets):
     for non_terminal in sets:
@@ -95,7 +100,6 @@ def main():
         printFirstSets(first_sets)
         follow_sets = computeFollowSets(G,first_sets)
         printFollowSets(follow_sets)
-
 
 if __name__ == "__main__":
     main()
