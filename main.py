@@ -6,18 +6,22 @@ def computeFirstSets(G):
         if symbol in calculated:
             return
         calculated.append(symbol)
-        first_sets[symbol] = set()
+        if symbol not in first_sets:
+            first_sets[symbol] = set()
         for production in G[symbol]:
             for i in range(len(production)):
                 if production[i] in G:
                     computeFirst(production[i])
-                    if i == len(production) - 1 or isLastNonTerminal(production, production[i]):
+                    if i == len(production) - 1:
                         first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
                     else:
                         #epsilon rule: if all the first sets of the non-terminals in the production have e,
                         #then First(current symbol) also does
                         if "e" in first_sets[production[i]]:
-                            first_sets[symbol] = unionExcludingEpsilon(first_sets[symbol], first_sets[production[i]])
+                            if "e" in first_sets[symbol]:
+                                first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
+                            else:
+                                first_sets[symbol] = unionExcludingEpsilon(first_sets[symbol], first_sets[production[i]])
                         else:
                             first_sets[symbol] = first_sets[symbol].union(first_sets[production[i]])
                             break
@@ -27,6 +31,12 @@ def computeFirstSets(G):
 
     for non_terminal in G:
         computeFirst(non_terminal)
+
+    if isLeftRecursive(G):
+        left_recursives = isLeftRecursive(G)
+        calculated = [non_terminal for non_terminal in calculated if non_terminal not in left_recursives]
+        for non_terminal in left_recursives:
+            computeFirst(non_terminal)
 
     return first_sets
 
@@ -38,11 +48,13 @@ def unionExcludingEpsilon(set1, set2):
         return set1
     return set1
 
-def isLastNonTerminal(production, non_terminal):
-    for symbol in reversed(production):
-        if symbol.isalpha() and symbol.isupper():
-            return symbol == non_terminal
-    return False
+def isLeftRecursive(G):
+    left_recursives = []
+    for non_terminal in G:
+        for production in G[non_terminal]:
+            if production[0] == non_terminal:
+                left_recursives.append(non_terminal)
+    return left_recursives
 
 def printFirstSets(sets):
     for non_terminal in sets:
@@ -59,10 +71,13 @@ def computeFollowSets(G,first_sets):
         for production in G[non_terminal]:
             for i in range(len(production)):
                 if len(production) >= 2 and production[i].isupper() and production[i].isalpha() and i != len(production)-1:
-                    if production[i+1].isupper() and production[i+1].isalpha():
-                        follow_sets[production[i]] = unionExcludingEpsilon(follow_sets[production[i]], first_sets[production[i+1]])
-                    else:
-                        follow_sets[production[i]].add(production[i+1])
+                    for j in range(len(production[i+1:])):
+                        if production[j+i+1].isupper() and production[j+i+1].isalpha():
+                            follow_sets[production[i]] = unionExcludingEpsilon(follow_sets[production[i]], first_sets[production[j+i+1]])
+                            if "e" not in first_sets[production[j+i+1]]:
+                                break
+                        else:
+                            follow_sets[production[i]].add(production[j+i+1])
 
     #Rule 3:
     for non_terminal in G:
@@ -71,16 +86,19 @@ def computeFollowSets(G,first_sets):
                 if production[i].isupper() and production[i].isalpha() and i == len(production)-1:
                     follow_sets[production[i]] = follow_sets[production[i]].union(follow_sets[non_terminal])
                 elif len(production) >= 2 and production[i].isupper() and production[i].isalpha() and i != len(production)-1:
-                    if production[i + 1].isupper() and production[i+1].isalpha() and "e" in first_sets[production[i+1]]:
-                        follow_sets[production[i]] = follow_sets[production[i]].union(follow_sets[non_terminal])
+                    for j in range(len(production[i+1:])):
+                        if production[j+i+1].isupper() and production[j+i+1].isalpha() and "e" not in first_sets[production[j+i+1]]:
+                            break
+                        elif production[j+i+1] not in G:
+                            break
+                        if j == len(production[i+1:])-1:
+                            follow_sets[production[i]] = follow_sets[production[i]].union(follow_sets[non_terminal])
 
     return follow_sets
 
 def printFollowSets(sets):
     for non_terminal in sets:
         print(f"Follow({non_terminal}) = {sets[non_terminal]}")
-
-
 
 def main():
     cases = int(input())
